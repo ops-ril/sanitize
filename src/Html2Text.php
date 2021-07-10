@@ -185,8 +185,8 @@ class Html2Text
             $text
         );
 
-        // remove leading and trailing empty lines (can be produced by eg. P tag on the beginning)
-        return trim($text, "\n");
+        // remove leading and trailing whitespace (can be produced by eg. P tag on the beginning)
+        return trim($text);
     }
 
     /**
