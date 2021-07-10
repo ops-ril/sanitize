@@ -1,0 +1,14 @@
+{
+    "name": "ops-ril/sanitize",
+    "description": "Sanitizing library",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "OpsRil\\Sanitize\\": "src/"
+        }
+    },
+    "require-dev": {
+        "codeception/codeception": "^4.1"
+    }
+}
