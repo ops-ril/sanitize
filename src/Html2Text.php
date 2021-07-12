@@ -60,12 +60,8 @@ class Html2Text
         '/(<tr\b[^>]*>|<\/tr\b\s*>)/i' => "\n",
         // </td>
         '/<\/td\b\s*>/i' => "</td>\n",
-        // <br>
-        '/<br\b[^>]*>/i' => "\n",
         // h1 - h6
         '/(<h[123456]\b[^>]*>|<\/h[123456]\b\s*>)/i' => "\n\n",
-        // &nbsp; -- replace with regular space so that trim can remove it
-        '/&nbsp;/i' => ' ',
     ];
 
     protected $normalizeWhitespaceRegexPatternToReplacementArray = [
@@ -173,6 +169,22 @@ class Html2Text
     }
 
     /**
+     * Has to run after self::convertPTags().
+     * Otherwise <br> inside <p> would be
+     * converted to " " instead of "\n".
+     * @param $text
+     * @return string
+     */
+    protected function convertBrTags($text): string
+    {
+        return preg_replace(
+        // <br>
+            '/<br\b[^>]*>/i',"\n",
+            $text
+        );
+    }
+
+    /**
      * @param string $text
      * @return string
      */
@@ -204,6 +216,7 @@ class Html2Text
         );
         $text = $this->convertPTags($text);
         $text = $this->convertATags($text);
+        $text = $this->convertBrTags($text);
         $text = strip_tags($text);
 
         $text = html_entity_decode($text, $this->htmlEntityDecodeFlags, self::ENCODING);

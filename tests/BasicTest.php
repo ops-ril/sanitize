@@ -34,7 +34,7 @@ class BasicTest extends \Codeception\Test\Unit
             ],
             'Paragraph text with linebreak flat' => [
                 'html' => '<p>Foo<br/>Bar</p>',
-                'expected' => "Foo Bar",
+                'expected' => "Foo\nBar",
             ],
             'Paragraph text with linebreak formatted with newline' => [
                 'html' => <<<EOT
@@ -44,9 +44,9 @@ class BasicTest extends \Codeception\Test\Unit
     Bar
 </p>
 EOT,
-                'expected' => "Foo Bar",
+                'expected' => "Foo\nBar",
             ],
-            'Paragraph text with linebreak formatted whth newline, but without whitespace' => [
+            'Paragraph text with linebreak formatted with newline, but without whitespace' => [
                 'html' => <<<EOT
 <p>Foo<br/>
 Bar</p>
@@ -55,7 +55,8 @@ Bar</p>
 
 EOT,
                 'expected' => <<<EOT
-Foo Bar
+Foo
+Bar
 
 lall
 EOT,
@@ -70,14 +71,15 @@ lall
 
 EOT,
                 'expected' => <<<EOT
-Foo Bar
+Foo
+Bar
 lall
 EOT,
 
             ],
             '<br /> within <strong>' => [
                 'html' => '<strong>Only new<br />line</strong>&nbsp;<strong>is added.</strong>',
-                'expected' => "Only new\nline is added.",
+                'expected' => "Only new\nline is added.",
             ],
         ];
     }
@@ -133,7 +135,7 @@ EOT;
         $expected = <<<EOT
 Disposition: Return to Vendor from Distribution
 
-Disposition: Remove
+Disposition: Remove
 
 HTML entities: ’ & Â ® “ ” – •
 EOT;
@@ -193,7 +195,7 @@ EOT;
 ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
 À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö Ø Ù Ú Û Ü Ý Þ ß à á â ã ä å æ ç è é ê ë ì í î ï ð ñ ò ó ô õ ö ø ù ú û ü ý þ ÿ
 À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö Ø Ù Ú Û Ü Ý Þ ß à á â ã ä å æ ç è é ê ë ì í î ï ð ñ ò ó ô õ ö ø ù ú û ü ý þ ÿ
-¡ ¢ £ ¤ ¥ ¦ § ¨ © ª « ¬ ­ ® ¯ ° ± ² ³ ´ µ ¶ ¸ ¹ º » ¼ ½ ¾ ¿ × ÷
+  ¡ ¢ £ ¤ ¥ ¦ § ¨ © ª « ¬ ­ ® ¯ ° ± ² ³ ´ µ ¶ ¸ ¹ º » ¼ ½ ¾ ¿ × ÷
   ¡ ¢ £ ¤ ¥ ¦ § ¨ © ª « ¬ ­ ® ¯ ° ± ² ³ ´ µ ¶ ¸ ¹ º » ¼ ½ ¾ ¿ × ÷
 ∀ ∂ ∃ ∅ ∇ ∈ ∉ ∋ ∏ ∑ − ∗ √ ∝ ∞ ∠ ∧ ∨ ∩ ∪ ∫ ∴ ∼ ≅ ≈ ≠ ≡ ≤ ≥ ⊂ ⊃ ⊄ ⊆ ⊇ ⊕ ⊗ ⊥ ⋅
 ∀ ∂ ∃ ∅ ∇ ∈ ∉ ∋ ∏ ∑ − ∗ √ ∝ ∞ ∠ ∧ ∨ ∩ ∪ ∫ ∴ ∼ ≅ ≈ ≠ ≡ ≤ ≥ ⊂ ⊃ ⊄ ⊆ ⊇ ⊕ ⊗ ⊥ ⋅
@@ -246,7 +248,7 @@ EOT;
 </p>
 EOT;
         $expected = <<<EOT
-Disposition: Destroy at Store Level
+Disposition: Destroy at Store Level 
 
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted
 
@@ -311,10 +313,10 @@ EOT;
 </p>
 EOT;
         $expected = <<<EOT
-Disposition:
+Disposition: 
 
-\t* Locate all impacted product in the front and back of house
-\t* Immediately dispose of the product
+\t* Locate all impacted product in the front and back of house
+\t* Immediately dispose of the product
 \t* Do not request credit for discarded product on The Coffee Company or through your LSR. Coffee Company will issue credits based on the amount of impacted product shipped to your store by April 1, as shown on the store list.
 \t* Check all incoming orders carefully for the impacted items; if you receive additional impacted product follow the steps above to discard
 \t* Do not sell, donate or give away any of this product
@@ -363,7 +365,7 @@ EOT;
 EOT;
 
         $expected = <<<EOT
-Please make sure you enter your information for the 5 items listed in the recall in Recall Infolink. Check the surrounding areas/products for any signs of bugs. If you find additional items with bugs, please scan your product out as recall and destroy the product. Please enter any of the additional product you find with bugs into the Google spreadsheet, drive link here: https://example.com/download [https://example.com/download/file/d/1knF5cG?usp=sharing]
+Please make sure you enter your information for the 5 items listed in the recall in Recall Infolink. Check the surrounding areas/products for any signs of bugs. If you find additional items with bugs, please scan your product out as recall and destroy the product. Please enter any of the additional product you find with bugs into the Google spreadsheet, drive link here: https://example.com/download [https://example.com/download/file/d/1knF5cG?usp=sharing]
 
 Disposition: Scan out as Recall Reclamation and Destroy at Store level
 
@@ -410,6 +412,21 @@ Disposition: Destroy at Store Level
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted
 
 Supplier Contact Info: Toni Tester Corporation, Tonia Tester, Director Sales, ttester@example.com, 555-111-1111
+EOT;
+
+        $html2text = new Html2Text();
+        static::assertSame($expected, $html2text->convert($html));
+    }
+
+    public function testNbsp()
+    {
+        $html = <<<EOT
+<p>&nbsp;Non-breaking spaces<br>&nbsp;at start<br>and end &nbsp;</p>
+EOT;
+        $expected = <<<EOT
+ Non-breaking spaces
+ at start
+and end  
 EOT;
 
         $html2text = new Html2Text();
