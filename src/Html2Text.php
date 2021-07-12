@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OpsRil\Sanitize;
 
 
-class Html2Text
+class Html2Text extends \Html2Text\Html2Text
 {
     /**
      * Class Html2Text
@@ -26,211 +26,91 @@ class Html2Text
      * GNU General Public License for more details.
      */
 
-    protected const ENCODING = 'UTF-8';
-    protected $htmlEntityDecodeFlags = ENT_QUOTES | ENT_HTML5;
-    protected $options = [];
-    protected $regexPatternToReplacementArray = [
-        // Non-legal carriage return
-        "/\r/" => '',
-        // Newlines and tabs
-        "/[\n\t]+/" => ' ',
-        // <head>
-        '/<head\b[^>]*>.*?<\/head\b\s*>/i' => '',
-        // <script>s -- which strip_tags supposedly has problems with
-        '/<script\b[^>]*>.*?<\/script\b\s*>/i' => '',
-        // <style>s -- which strip_tags supposedly has problems with
-        '/<style\b[^>]*>.*?<\/style\b\s*>/i' => '',
-        // <ul> and </ul>
-        '/(<ul\b[^>]*>|<\/ul\b\s*>)/i' => "\n\n",
-        // <ol> and </ol>
-        '/(<ol\b[^>]*>|<\/ol\b\s*>)/i' => "\n\n",
-        // <dl> and </dl>
-        '/(<dl\b[^>]*>|<\/dl\b\s*>)/i' => "\n\n",
-        // <li>
-        '/<li\b[^>]*>/i' => "\t* ",
-        // </li>
-        '/<\/li\b\s*>/i' => "\n",
-        // <hr>
-        '/<hr\b[^>]*>/i' => "\n-------------------------\n",
-        // <div>
-        '/<div\b[^>]*>/i' => "<div>\n",
-        // <table> and </table>
-        '/(<table\b[^>]*>|<\/table\b\s*>)/i' => "\n\n",
-        // <tr> and </tr>
-        '/(<tr\b[^>]*>|<\/tr\b\s*>)/i' => "\n",
-        // </td>
-        '/<\/td\b\s*>/i' => "</td>\n",
-        // h1 - h6
-        '/(<h[123456]\b[^>]*>|<\/h[123456]\b\s*>)/i' => "\n\n",
-    ];
+    public const ENCODING = 'UTF-8';
 
-    protected $normalizeWhitespaceRegexPatternToReplacementArray = [
-        // Normalise empty lines
-        "/\n\s+\n/" => "\n\n",
-        "/[\n]{3,}/" => "\n\n",
-        // Remove leading and trailing spaces per line
-        '/^[ ]*|[ ]*$/m' => '',
-        // Reduce multiple occurrences of space to a single space
-        '/[ ]{2,}/' => ' ',
+    /**
+     * @param string $html    Source HTML
+     * @param array  $options Set configuration options
+     */
+    public function __construct($html = '', $options = array())
+    {
+        $this->html = $html;
+        $this->options = array_merge($this->options, $options);
+        $this->htmlFuncFlags = ENT_QUOTES | ENT_HTML5;
+    }
+
+    /**
+     * List of pattern replacements corresponding to patterns searched.
+     *
+     * @var array $replace
+     * @see $search
+     */
+    protected $replace = [
+        '',                              // Non-legal carriage return
+        ' ',                             // Newlines and tabs
+        '',                              // <head>
+        '',                              // <script>s -- which strip_tags supposedly has problems with
+        '',                              // <style>s -- which strip_tags supposedly has problems with
+        '\\1',                           // <i>
+        '\\1',                           // <em>
+        '\\1',                           // <ins>
+        "\n\n",                          // <ul> and </ul>
+        "\n\n",                          // <ol> and </ol>
+        "\n\n",                          // <dl> and </dl>
+        "\t* \\1\n",                     // <li> and </li>
+        " \\1\n",                        // <dd> and </dd>
+        "\t* \\1",                       // <dt> and </dt>
+        "\n\t* ",                        // <li>
+        "\n-------------------------\n", // <hr>
+        "<div>\n",                       // <div>
+        "\n\n",                          // <table> and </table>
+        "\n",                            // <tr> and </tr>
+        "\t\t\\1\n",                     // <td> and </td>
+        "",                              // <span class="_html2text_ignore">...</span>
+        '[\\2]',                         // <img> with alt tag
     ];
 
     /**
-     * Html2Text constructor.
-     * @param array $options
-     */
-    public function __construct(array $options = [])
-    {
-        $this->options = array_merge($this->defaultOptions(), $options);
-    }
-
-    /**
-     * @return array
-     */
-    public function defaultOptions(): array
-    {
-        return [
-            'exceptions' => [
-                UncovertedHtmlEntityException::class => false
-            ]
-        ];
-    }
-
-    /**
-     * @param $exceptionClassName
-     * @return bool
-     */
-    protected function isExceptionEnabled($exceptionClassName): bool
-    {
-        return isset($this->options['exceptions'][$exceptionClassName])
-            && $this->options['exceptions'][$exceptionClassName] === true;
-    }
-
-    /**
-     * @param string $text
+     * Callback function for preg_replace_callback use.
+     *
+     * @param  array  $matches PREG matches
      * @return string
      */
-    protected function convertPTags(string $text): string
+    protected function pregCallback($matches)
     {
-        // <p> with surrounding whitespace.
-        $pTagRegexPattern = '/[ ]*<p\b[^>]*>(.*?)<\/p\b\s*>[ ]*/si';
-        return preg_replace_callback(
-            $pTagRegexPattern,
-            static function ($match) {
+        switch (mb_strtolower($matches[1])) {
+            case 'p':
                 // Replace newlines with spaces.
-                $paragraph = str_replace("\n", " ", $match[1]);
+                $para = str_replace("\n", " ", $matches[3]);
 
                 // Trim trailing and leading whitespace within the tag.
-                $paragraph = trim($paragraph);
+                $para = trim($para);
 
-                // Add trailing newlines for this paragraph.
-                return "\n" . $paragraph . "\n";
-            },
-            $text
-        );
-    }
-
-    protected function convertATags(string $text): string
-    {
-        $aTagRegexPattern = '/<a\b[^>]*href=["\']([^"\']+)[^>]*>(.*?)<\/a\b\s*>/i';
-        return preg_replace_callback(
-            $aTagRegexPattern,
-            function ($matches) {
-                // Remove spaces in URL
-                $url = str_replace(' ', '', $matches[1]);
-                $display = $matches[2];
-                if (preg_match(
-                    '/^(javascript:|#)/i',
-                    html_entity_decode(
-                        $url,
-                        $this->htmlEntityDecodeFlags,
-                        self::ENCODING
-                    )
-                )) {
-                    return $display;
+                // Add trailing newlines for this para.
+                return "\n" . $para . "\n";
+            case 'br':
+                return "\n";
+            case 'b':
+            case 'del':
+            case 'strong':
+                return $matches[3];
+            case 'th':
+                return "\t\t" . $matches[3] . "\n";
+            case 'h':
+                return "\n\n" . $matches[3] . "\n\n";
+            case 'a':
+                // override the link method
+                $linkOverride = null;
+                if (preg_match('/_html2text_link_(\w+)/', $matches[4], $linkOverrideMatch)) {
+                    $linkOverride = $linkOverrideMatch[1];
                 }
-                if (preg_match(
-                    '/^mailto:/i',
-                    html_entity_decode(
-                        $url,
-                        $this->htmlEntityDecodeFlags,
-                        self::ENCODING
-                    )
-                )) {
-                    return str_replace('mailto:', '', $url);
-                }
+                // Remove spaces in URL (#1487805)
+                $url = str_replace(' ', '', $matches[3]);
 
-                if ($url === $display) {
-                    return $display;
-                }
-                return $display . ' [' . $url . ']';
-            },
-            $text
-        );
-    }
-
-    /**
-     * Has to run after self::convertPTags().
-     * Otherwise <br> inside <p> would be
-     * converted to " " instead of "\n".
-     * @param $text
-     * @return string
-     */
-    protected function convertBrTags($text): string
-    {
-        return preg_replace(
-        // <br>
-            '/<br\b[^>]*>/i',"\n",
-            $text
-        );
-    }
-
-    /**
-     * @param string $text
-     * @return string
-     */
-    protected function normalizeWhitespace(string $text): string
-    {
-        // Remove excessive new lines and spaces
-        $text = preg_replace(
-            array_keys($this->normalizeWhitespaceRegexPatternToReplacementArray),
-            $this->normalizeWhitespaceRegexPatternToReplacementArray,
-            $text
-        );
-
-        // remove leading and trailing whitespace (can be produced by eg. P tag on the beginning)
-        return trim($text);
-    }
-
-    /**
-     * @param string $html
-     * @return string
-     * @throws UncovertedHtmlEntityException
-     */
-    public function convert(string $html): string
-    {
-        $html = trim($html);
-        $text = preg_replace(
-            array_keys($this->regexPatternToReplacementArray),
-            $this->regexPatternToReplacementArray,
-            $html
-        );
-        $text = $this->convertPTags($text);
-        $text = $this->convertATags($text);
-        $text = $this->convertBrTags($text);
-        $text = strip_tags($text);
-
-        $text = html_entity_decode($text, $this->htmlEntityDecodeFlags, self::ENCODING);
-
-        // Check for entities not decoded by html_entity_decode()
-        // False positives are expected.
-        // E.g. &apos;&amp;reg; is correctly decoded to '&reg; but will still lead to an exception.
-        if ($this->isExceptionEnabled(UncovertedHtmlEntityException::class) && preg_match(
-                '/&([a-zA-Z0-9]+|#[0-9]+);/',
-                $text
-            ) === 1) {
-            throw new UncovertedHtmlEntityException();
+                return $this->buildlinkList($url, $matches[5], $linkOverride);
         }
 
-        return $this->normalizeWhitespace($text);
+        // For every tag that enters this method well defined behavior must exist.
+        throw new \Exception('Do not know how to handle tag');
     }
 }

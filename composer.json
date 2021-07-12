@@ -10,5 +10,8 @@
     },
     "require-dev": {
         "codeception/codeception": "^4.1"
+    },
+    "require": {
+        "html2text/html2text": "^4.3"
     }
 }

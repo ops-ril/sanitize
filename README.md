@@ -31,8 +31,8 @@ Usage
 
 ```php
 use OpsRil\Sanitize\Html2Text;
-$html2text = new Html2Text();
-$plainText = $html2text->convert('<p>Lorem ipsum<p>');
+$html2text = new Html2Text('<p>Lorem ipsum<p>');
+$plainText = $html2text->getText();
 ```
 
 History
@@ -47,5 +47,5 @@ This is a fork of [Html2Text](https://github.com/mtibben/html2text).
 We created our own version since https://github.com/mtibben/html2text
 could not be configured to work like we needed it. We also tried https://github.com/voku/html2text
 which can be configured, but it stripped all uppercase tags.
-After that we decided to derive a html2text implementation from the existing
-ones that serves exactly our needs.
+After that we decided to derive a html2text implementation
+that serves exactly our needs.
